@@ -437,13 +437,17 @@ export async function executePRP(
     .slice(0, 30);
   const branch = `auto/${prp.id.toLowerCase()}-${branchSlug}`;
 
-  // Check if branch already exists
-  const branchExists = exec(`git branch -r --list "origin/${branch}"`, {
+  // Check if branch already exists (local or remote)
+  const remoteBranchExists = exec(`git branch -r --list "origin/${branch}"`, {
+    cwd: ctx.path,
+    silent: true,
+  });
+  const localBranchExists = exec(`git branch --list "${branch}"`, {
     cwd: ctx.path,
     silent: true,
   });
 
-  if (branchExists) {
+  if (remoteBranchExists || localBranchExists) {
     log(`Branch ${branch} already exists - checking out`, 'warn');
     exec(`git checkout ${branch}`, { cwd: ctx.path });
     try {
