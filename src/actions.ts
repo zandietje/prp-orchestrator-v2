@@ -136,8 +136,8 @@ The original requirements are in: ${prp.enrichedFile}
     throw new Error('Revision failed');
   }
 
-  // Commit and push
-  exec('git add .', { cwd: ctx.path });
+  // Commit and push (exclude Windows reserved filenames)
+  exec('git add -A -- ":!nul" ":!.prp-*"', { cwd: ctx.path });
   const hasChanges = exec('git status --porcelain', {
     cwd: ctx.path,
     silent: true,
@@ -422,8 +422,8 @@ export async function executePRP(
   log('Running validation...');
   const validation = runValidation(ctx.path);
 
-  // Check for changes
-  exec('git add .', { cwd: ctx.path });
+  // Check for changes (exclude Windows reserved filenames)
+  exec('git add -A -- ":!nul" ":!.prp-*"', { cwd: ctx.path });
   const hasChanges = exec('git status --porcelain', {
     cwd: ctx.path,
     silent: true,
