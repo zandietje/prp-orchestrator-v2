@@ -181,7 +181,7 @@ The original requirements are in: ${prp.enrichedFile}
   }
 
   // Commit and push (exclude Windows reserved filenames)
-  exec('git add -A -- ":!nul" ":!.prp-*"', { cwd: ctx.path });
+  exec('git add .', { cwd: ctx.path });
   const hasChanges = exec('git status --porcelain', {
     cwd: ctx.path,
     silent: true,
@@ -473,7 +473,7 @@ export async function executePRP(
   const validation = runValidation(ctx.path);
 
   // Check for changes (exclude Windows reserved filenames)
-  exec('git add -A -- ":!nul" ":!.prp-*"', { cwd: ctx.path });
+  exec('git add .', { cwd: ctx.path });
   const hasChanges = exec('git status --porcelain', {
     cwd: ctx.path,
     silent: true,
