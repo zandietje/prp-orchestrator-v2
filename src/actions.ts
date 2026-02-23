@@ -2,7 +2,48 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { MasterPlan, PRPState, ProjectContext, ValidationResult } from './types';
 import { exec, runClaude, log, ensureDir, getDefaultBranch } from './utils';
-import { getTimeouts } from './config';
+import { getTimeouts, getBotCredentials } from './config';
+
+/**
+ * Run a command with bot credentials (for git/gh operations)
+ */
+function execWithBot(
+  command: string,
+  options: { cwd: string; silent?: boolean }
+): string {
+  const bot = getBotCredentials();
+  if (bot) {
+    // Set GH_TOKEN for gh CLI
+    process.env.GH_TOKEN = bot.token;
+  }
+  return exec(command, options);
+}
+
+/**
+ * Configure git to use bot credentials for a repo
+ */
+function configureGitBot(cwd: string): void {
+  const bot = getBotCredentials();
+  if (!bot) return;
+
+  // Set bot as committer
+  exec(`git config user.name "${bot.username}"`, { cwd, silent: true });
+  exec(`git config user.email "${bot.username}@users.noreply.github.com"`, { cwd, silent: true });
+
+  // Update remote URL to include token for push
+  try {
+    const remoteUrl = exec('git remote get-url origin', { cwd, silent: true });
+    if (remoteUrl.includes('github.com') && !remoteUrl.includes('@')) {
+      const newUrl = remoteUrl.replace(
+        'https://github.com/',
+        `https://${bot.username}:${bot.token}@github.com/`
+      );
+      exec(`git remote set-url origin "${newUrl}"`, { cwd, silent: true });
+    }
+  } catch {
+    // Ignore remote URL errors
+  }
+}
 
 // ============================================================================
 // MERGE
@@ -18,7 +59,7 @@ export async function mergeApprovedPR(
   log(`Merging PR #${prp.prNumber}...`, 'success');
 
   try {
-    exec(`gh pr merge ${prp.prNumber} --squash --delete-branch`, {
+    execWithBot(`gh pr merge ${prp.prNumber} --squash --delete-branch`, {
       cwd: ctx.path,
     });
     log(`PR #${prp.prNumber} merged successfully`, 'success');
@@ -40,6 +81,9 @@ export async function runRevision(
   ctx: ProjectContext
 ): Promise<void> {
   log(`Running revision for PR #${prp.prNumber}...`);
+
+  // Configure git to use bot credentials
+  configureGitBot(ctx.path);
 
   // Collect all feedback
   const feedbackJson = exec(
@@ -175,6 +219,9 @@ export async function enrichPRP(
   ctx: ProjectContext
 ): Promise<void> {
   log(`Enriching ${prp.id}: ${prp.title}...`);
+
+  // Configure git to use bot credentials
+  configureGitBot(ctx.path);
 
   ensureDir(ctx.enrichedDir);
 
@@ -372,7 +419,10 @@ export async function executePRP(
 ): Promise<void> {
   log(`Executing ${prp.id}: ${prp.title}...`);
 
-  // Ensure we're on main and up to date
+  // Configure git to use bot credentials
+  configureGitBot(ctx.path);
+
+  // Ensure we're on default branch and up to date
   exec(`git checkout ${getDefaultBranch(ctx.path)}`, { cwd: ctx.path });
   exec('git pull', { cwd: ctx.path });
 
@@ -450,12 +500,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"`,
 
   exec(`git push -u origin ${branch}`, { cwd: ctx.path });
 
-  // Create PR
+  // Create PR (using bot credentials)
   const prBody = buildPRBody(prp, validation);
   const prBodyFile = path.join(ctx.path, '.prp-pr-body.md');
   fs.writeFileSync(prBodyFile, prBody);
 
-  exec(
+  execWithBot(
     `gh pr create --title "${prp.id}: ${prp.title}" --body-file "${prBodyFile}"`,
     { cwd: ctx.path }
   );

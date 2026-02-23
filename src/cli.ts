@@ -13,6 +13,8 @@ import {
   saveGlobalConfig,
   enableProject,
   disableProject,
+  setBotCredentials,
+  getBotCredentials,
 } from './config';
 import { runProject, runAllProjects } from './orchestrator';
 import { installSkillsToProject, checkProjectSkills, getProjectSkillsDir, listProjectSkills } from './skills';
@@ -307,6 +309,19 @@ program
   });
 
 // ============================================================================
+// BOT COMMAND
+// ============================================================================
+
+program
+  .command('set-bot <username> <token>')
+  .description('Set bot credentials for PR creation')
+  .action((username, token) => {
+    setBotCredentials(username, token);
+    log(`Bot configured: ${username}`, 'success');
+    log('PRs will now be created by the bot account.');
+  });
+
+// ============================================================================
 // CONFIG COMMAND
 // ============================================================================
 
@@ -315,6 +330,7 @@ program
   .description('Show configuration')
   .action(() => {
     const config = loadGlobalConfig();
+    const bot = getBotCredentials();
 
     console.log('');
     console.log('PRP Orchestrator Configuration');
@@ -322,6 +338,14 @@ program
     console.log('');
     console.log(`Config directory: ${getConfigDir()}`);
     console.log(`Skills directory: <project>/.claude/commands/ (per-project)`);
+    console.log('');
+    console.log('Bot account:');
+    if (bot) {
+      console.log(`  Username: ${bot.username}`);
+      console.log(`  Token: ${bot.token.substring(0, 20)}...`);
+    } else {
+      console.log('  Not configured (run: prp set-bot <username> <token>)');
+    }
     console.log('');
     console.log('Timeouts:');
     console.log(`  Enrichment: ${config.defaults.enrichmentTimeoutMinutes} minutes`);

@@ -9,6 +9,10 @@ export interface GlobalConfig {
     executionTimeoutMinutes: number;
     revisionTimeoutMinutes: number;
   };
+  bot?: {
+    username: string;
+    token: string;
+  };
 }
 
 /**

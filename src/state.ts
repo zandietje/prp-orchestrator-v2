@@ -3,6 +3,18 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { MasterPlan, PRPState, ProjectContext } from './types';
 import { exec, log, safeJsonParse } from './utils';
+import { getBotCredentials } from './config';
+
+/**
+ * Run gh command with bot token if available
+ */
+function ghExec(command: string, options: { cwd: string; silent?: boolean }): string {
+  const bot = getBotCredentials();
+  if (bot) {
+    process.env.GH_TOKEN = bot.token;
+  }
+  return exec(command, options);
+}
 
 /**
  * Load master plan from project
@@ -63,7 +75,7 @@ export async function derivePRPState(
   // Check for PR if we have a branch
   if (state.branch) {
     try {
-      const prJson = exec(
+      const prJson = ghExec(
         `gh pr list --head "${state.branch}" --json number,state,reviewDecision,labels --limit 1`,
         { cwd: ctx.path, silent: true }
       );
@@ -101,7 +113,7 @@ export async function derivePRPState(
   // Check for merged PR (branch might have been deleted)
   if (!state.prNumber) {
     try {
-      const mergedJson = exec(
+      const mergedJson = ghExec(
         `gh pr list --search "head:${branchPrefix}" --state merged --json number --limit 1`,
         { cwd: ctx.path, silent: true }
       );

@@ -37,11 +37,29 @@ export function loadGlobalConfig(): GlobalConfig {
         ...DEFAULT_CONFIG.defaults,
         ...config.defaults,
       },
+      bot: config.bot,
     };
   } catch (error) {
     log(`Failed to load config: ${error}`, 'warn');
     return { ...DEFAULT_CONFIG };
   }
+}
+
+/**
+ * Set bot credentials for PR creation
+ */
+export function setBotCredentials(username: string, token: string): void {
+  const config = loadGlobalConfig();
+  config.bot = { username, token };
+  saveGlobalConfig(config);
+}
+
+/**
+ * Get bot credentials
+ */
+export function getBotCredentials(): { username: string; token: string } | null {
+  const config = loadGlobalConfig();
+  return config.bot || null;
 }
 
 /**
