@@ -64,7 +64,7 @@ export async function derivePRPState(
   if (state.branch) {
     try {
       const prJson = exec(
-        `gh pr list --head "${state.branch}" --json number,state,reviewDecision --limit 1`,
+        `gh pr list --head "${state.branch}" --json number,state,reviewDecision,labels --limit 1`,
         { cwd: ctx.path, silent: true }
       );
       const prs = safeJsonParse<any[]>(prJson, []);
@@ -73,16 +73,24 @@ export async function derivePRPState(
         state.prNumber = prs[0].number;
         state.prState = prs[0].state.toLowerCase() as 'open' | 'merged' | 'closed';
 
-        // Map review decision
-        const decision = prs[0].reviewDecision?.toUpperCase();
-        if (decision === 'APPROVED') {
+        // Check labels first (for self-review workflow)
+        const labels = (prs[0].labels || []).map((l: any) => l.name.toLowerCase());
+        if (labels.includes('approved') || labels.includes('lgtm')) {
           state.reviewState = 'approved';
-        } else if (decision === 'CHANGES_REQUESTED') {
+        } else if (labels.includes('changes-requested') || labels.includes('needs-changes')) {
           state.reviewState = 'changes_requested';
-        } else if (decision === 'REVIEW_REQUIRED') {
-          state.reviewState = 'pending';
         } else {
-          state.reviewState = 'none';
+          // Fall back to review decision (for external reviewers)
+          const decision = prs[0].reviewDecision?.toUpperCase();
+          if (decision === 'APPROVED') {
+            state.reviewState = 'approved';
+          } else if (decision === 'CHANGES_REQUESTED') {
+            state.reviewState = 'changes_requested';
+          } else if (decision === 'REVIEW_REQUIRED') {
+            state.reviewState = 'pending';
+          } else {
+            state.reviewState = 'none';
+          }
         }
       }
     } catch {

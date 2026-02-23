@@ -555,15 +555,14 @@ ${prp.scope}
 
 1. **Check the changes** - Review the code diff
 2. **Verify requirements** - Compare against acceptance criteria
-3. **Make a decision:**
+3. **Add a label to trigger automation:**
 
-| Your Action | What Happens Automatically |
-|-------------|---------------------------|
-| ✅ **Approve** | PR is merged, next PRP starts |
-| 🔧 **Request Changes** | Claude reads your feedback and pushes fixes |
-| 💬 **Comment only** | Nothing automatic (just discussion) |
+| Label | What Happens |
+|-------|--------------|
+| \`approved\` | PR is auto-merged, next PRP starts |
+| \`changes-requested\` | Claude reads your comments and pushes fixes |
 
-> **Tip:** Use "Request Changes" (not just "Comment") to trigger automatic revisions.
+> **Note:** Add your feedback as comments, then add the appropriate label.
 
 ---
 
