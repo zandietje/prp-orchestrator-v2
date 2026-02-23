@@ -257,9 +257,12 @@ export async function enrichPRP(
     throw new Error('Generated PRP file not found');
   }
 
-  // Move to enriched directory
+  // Move to enriched directory (if not already there)
   const enrichedFile = path.join(ctx.enrichedDir, `${prp.id}.md`);
-  fs.renameSync(generatedFile, enrichedFile);
+  if (generatedFile !== enrichedFile) {
+    ensureDir(ctx.enrichedDir);
+    fs.renameSync(generatedFile, enrichedFile);
+  }
 
   log(`Saved enriched PRP: ${enrichedFile}`, 'success');
 
@@ -356,11 +359,11 @@ function buildInitialPRP(prp: MasterPlan['prps'][0], master: MasterPlan): string
  * Find the generated PRP file after enrichment
  */
 function findGeneratedPRP(prpId: string, projectPath: string): string | null {
-  const searchDirs = ['PRPs', 'PRPs/generated', '.'];
+  const searchDirs = ['PRPs/enriched', 'PRPs', 'PRPs/generated', '.'];
   const patterns = [
+    `${prpId}.md`,
     `${prpId}-ENRICHED.md`,
     `${prpId}-enriched.md`,
-    `${prpId}.md`,
   ];
 
   // First try exact matches
