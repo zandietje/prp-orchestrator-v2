@@ -198,6 +198,35 @@ function displayStreamEvent(event: any): void {
 }
 
 /**
+ * Track active lock files for cleanup on shutdown
+ */
+const activeLocks: Set<string> = new Set();
+
+/**
+ * Get all active lock files (for cleanup on shutdown)
+ */
+export function getActiveLocks(): string[] {
+  return Array.from(activeLocks);
+}
+
+/**
+ * Clean up all active locks (called on shutdown)
+ */
+export function cleanupAllLocks(): void {
+  for (const lockFile of activeLocks) {
+    try {
+      if (fs.existsSync(lockFile)) {
+        fs.unlinkSync(lockFile);
+        console.log(`  Cleaned up lock: ${lockFile}`);
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+  activeLocks.clear();
+}
+
+/**
  * Acquire a lock file to prevent concurrent runs
  */
 export function acquireLock(lockFile: string): boolean {
@@ -219,6 +248,7 @@ export function acquireLock(lockFile: string): boolean {
 
   const lockContent = `${process.pid}:${Date.now()}`;
   fs.writeFileSync(lockFile, lockContent);
+  activeLocks.add(lockFile);
   return true;
 }
 
@@ -230,6 +260,7 @@ export function releaseLock(lockFile: string): void {
     if (fs.existsSync(lockFile)) {
       fs.unlinkSync(lockFile);
     }
+    activeLocks.delete(lockFile);
   } catch {
     // Ignore errors releasing lock
   }

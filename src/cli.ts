@@ -18,7 +18,24 @@ import {
 } from './config';
 import { runProject, runAllProjects } from './orchestrator';
 import { installSkillsToProject, checkProjectSkills, getProjectSkillsDir, listProjectSkills } from './skills';
-import { log, getConfigDir, ensureDir } from './utils';
+import { log, getConfigDir, ensureDir, cleanupAllLocks } from './utils';
+
+// Handle shutdown signals - clean up lock files
+const shutdown = (signal: string) => {
+  console.log(`\n  Received ${signal}, cleaning up...`);
+  cleanupAllLocks();
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error(`\n  Uncaught exception: ${err.message}`);
+  cleanupAllLocks();
+  process.exit(1);
+});
 
 const program = new Command();
 
